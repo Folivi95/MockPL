@@ -25,7 +25,7 @@ router.post('/admin/register', async (req, res) => {
     const user = new User({
         name: req.body.name,
         email: req.body.email,
-        password: req.body.password,
+        password: hashedPassword,
         adminFlag: req.body.adminFlag
     });
 
@@ -63,7 +63,7 @@ router.post('/admin/login', async (req,res) => {
     }
 
     //create and assign token
-    const token = jwt.sign({_id: user._id}, process.env.TOKEN_SECRET);
+    const token = jwt.sign({_id: user._id}, process.env.ADMIN_TOKEN_SECRET);
     res.header('bearer-token', token).json({bearerToken: token});
 });
 

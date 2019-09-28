@@ -27,6 +27,6 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-});
+}, {collection: 'MPLUsers'});
 
 module.exports = mongoose.model('User', userSchema);
