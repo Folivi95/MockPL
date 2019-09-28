@@ -21,7 +21,6 @@ const userSchema = new mongoose.Schema({
     },
     adminFlag: {
         type: Boolean,
-        required: true,
     },
     date: {
         type: Date,

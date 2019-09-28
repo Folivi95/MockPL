@@ -15,7 +15,7 @@ router.post('/user/register', async (req, res) => {
     //check if user is in database to prevent registering a user twice
     const emailExist = await User.findOne({email: req.body.email});
     if (emailExist) {
-        return res.status(400).json({message: 'Email Already Exists'});
+        return res.status(400).json({message: 'User Already Exists'});
     }
 
     //Hash the password
@@ -26,7 +26,7 @@ router.post('/user/register', async (req, res) => {
         name: req.body.name,
         email: req.body.email,
         password: hashedPassword,
-        adminFlag: req.body.adminFlag
+        adminFlag: false
     });
 
     try {
@@ -53,7 +53,7 @@ router.post('/user/login', async (req,res) => {
     const user = await User.findOne({email: req.body.email});
     //if user does not exist
     if (!user) {
-        return res.status(400).send('Oops!!! Email is not registered');
+        return res.status(400).send('Oops!!! User is not registered');
     }
     
     //check if password is correct
@@ -63,7 +63,7 @@ router.post('/user/login', async (req,res) => {
     }
 
     //create and assign token
-    const token = jwt.sign({_id: user._id}, process.env.USER_TOKEN_SECRET);
+    const token = jwt.sign({_id: user._id}, process.env.USER_TOKEN_SECRET, {expiresIn: '6h'});
     res.header('bearer-token', token).json({bearerToken: token});
 });
 
