@@ -21,5 +21,28 @@ const loginValidation = (data) => {
     return schema.validate(data);
 }
 
+//team validation
+const teamValidation = (data) => {
+    const schema = Joi.object({
+        name: Joi.string().min(3).required(),
+        position: Joi.number().required()
+    })
+
+    return schema.validate(data);
+}
+
+//fixture validation
+const fixtureValidation = (data) => {
+    const schema = Joi.object({
+        name: Joi.string().min(3).required(),
+        position: Joi.number().required()
+    })
+
+    return schema.validate(data);
+}
+
+
 module.exports.registerValidation = registerValidation;
 module.exports.loginValidation = loginValidation;
+module.exports.teamValidation = teamValidation;
+module.exports.fixtureValidation = fixtureValidation;
