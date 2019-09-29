@@ -5,65 +5,73 @@ const jwt = require('jsonwebtoken');
 const { fixtureValidation } = require('../validation/validation');
 
 //Add Fixtures
-router.post('/fixtures/add', async (req,res) => {
-    //validate request
-    const {error} = fixtureValidation(req.body);
-    if (error) {
-        return res.status(400).json({message: error.details[0].message});
-    }
+router.post('/fixtures/add', verifyToken, (req, res) => {
+    //authenticate user
+    jwt.verify(req.token, process.env.ADMIN_TOKEN_SECRET, async (err, data) => {
+        if (err) {
+            return res.status(403).json({ message: 'Unauthorized' })
+        } else {
+            //validate request
+            const { error } = fixtureValidation(req.body);
+            if (error) {
+                return res.status(400).json({ message: error.details[0].message });
+            }
 
-    //check if home team is equal to away team
-    if (req.body.homeTeam === req.body.awayTeam) {
-        return res.status(400).json({message: 'Oops!!! You cannnot have a team play themself'})
-    }
+            //check if home team is equal to away team
+            if (req.body.homeTeam === req.body.awayTeam) {
+                return res.status(400).json({ message: 'Oops!!! You cannnot have a team play themself' })
+            }
 
-    //check if home team exists
-    const homeExists = await Team.findOne({name: req.body.homeTeam});
-    if (!homeExists) {
-        return res.status(400).json({message: 'Home Team Does not Exist'})
-    }
+            //check if home team exists
+            const homeExists = await Team.findOne({ name: req.body.homeTeam });
+            if (!homeExists) {
+                return res.status(400).json({ message: 'Home Team Does not Exist' })
+            }
 
-    //check if away team exists
-    const awayExists = await Team.findOne({name: req.body.awayTeam});
-    if (!awayExists) {
-        return res.status(400).json({message: 'Away Team Does not Exists'})
-    }
+            //check if away team exists
+            const awayExists = await Team.findOne({ name: req.body.awayTeam });
+            if (!awayExists) {
+                return res.status(400).json({ message: 'Away Team Does not Exists' })
+            }
 
-    //check if Fixture is in database and status is completed
-    const FixtureExist = await Fixtures.findOne({homeTeam: req.body.homeTeam, awayTeam: req.body.awayTeam, status: 'completed'});
-    if (FixtureExist) {
-        return res.status(400).json({message: 'Fixture Already Exists'});
-    }
+            //check if Fixture is in database and status is completed
+            const FixtureExist = await Fixtures.findOne({ homeTeam: req.body.homeTeam, awayTeam: req.body.awayTeam, status: 'completed' });
+            if (FixtureExist) {
+                return res.status(400).json({ message: 'Fixture Already Exists' });
+            }
 
-    //delete fixture in database if status is pending
-    await Fixtures.findOneAndRemove({homeTeam: req.body.homeTeam, awayTeam: req.body.awayTeam, status: 'pending'});
+            //delete fixture in database if status is pending
+            await Fixtures.findOneAndRemove({ homeTeam: req.body.homeTeam, awayTeam: req.body.awayTeam, status: 'pending' });
 
-    //set status to completed or pending if scores are supplied
-    if ((req.body.homeScore !== null) && (req.body.awayScore !== null)) {
-        var status = 'completed';
-    } else {
-        status = 'pending';
-    }
+            //set status to completed or pending if scores are supplied
+            if ((req.body.homeScore !== null) && (req.body.awayScore !== null)) {
+                var status = 'completed';
+            } else {
+                status = 'pending';
+            }
 
-    //add Fixture to database if all checks fails
-    const Fixture = new Fixtures({
-        homeTeam: req.body.homeTeam,
-        awayTeam: req.body.awayTeam,
-        homeScore: req.body.homeScore,
-        awayScore: req.body.awayScore,
-        matchDay: req.body.matchDay,
-        status: status
-    });
+            //add Fixture to database if all checks fails
+            const Fixture = new Fixtures({
+                homeTeam: req.body.homeTeam,
+                awayTeam: req.body.awayTeam,
+                homeScore: req.body.homeScore,
+                awayScore: req.body.awayScore,
+                matchDay: req.body.matchDay,
+                status: status
+            });
 
-    try {
-        const savedFixture = await Fixture.save();
-        res.status(200).json({
-            fixture: savedFixture,
-            message: 'Created Successfully'
-        });
-    } catch (error) {
-        res.status(500).json(error);
-    }
+            try {
+                const savedFixture = await Fixture.save();
+                res.status(200).json({
+                    fixture: savedFixture,
+                    message: 'Created Successfully'
+                });
+            } catch (error) {
+                res.status(500).json(error);
+            }
+        }
+    })
+
 });
 
 
@@ -71,57 +79,57 @@ router.post('/fixtures/add', async (req,res) => {
 router.get('/fixtures/view', async (req, res) => {
     //return Fixture using match day
     if (req.query.matchDay && req.query.homeTeam && req.query.awayTeam) {
-        await Fixtures.find({matchDay: req.query.matchDay, homeTeam: {$regex: req.query.homeTeam}, awayTeam: {$regex: req.query.awayTeam}})
-            .then(f => {return res.status(200).json(f)})
+        await Fixtures.find({ matchDay: req.query.matchDay, homeTeam: { $regex: req.query.homeTeam }, awayTeam: { $regex: req.query.awayTeam } })
+            .then(f => { return res.status(200).json(f) })
             .catch(err => {
                 return res.status(500).json(err)
             })
     }
     else if (req.query.homeTeam && req.query.matchDay) {
-        await Fixtures.find({matchDay: req.query.matchDay, homeTeam: {$regex: req.query.homeTeam}})
-                    .then(f => {
-                        return res.status(200).json(f)
-                    })
-                    .catch(err => {
-                        return res.status(500).json(err.errmsg)
-                    })
+        await Fixtures.find({ matchDay: req.query.matchDay, homeTeam: { $regex: req.query.homeTeam } })
+            .then(f => {
+                return res.status(200).json(f)
+            })
+            .catch(err => {
+                return res.status(500).json(err.errmsg)
+            })
     }
     else if (req.query.awayTeam && req.query.matchDay) {
-        await Fixtures.find({matchDay: req.query.matchDay, awayTeam: {$regex: req.query.awayTeam}})
-                    .then(f => {
-                        return res.status(200).json(f)
-                    })
-                    .catch(err => {
-                        return res.status(500).json(err)
-                    })
+        await Fixtures.find({ matchDay: req.query.matchDay, awayTeam: { $regex: req.query.awayTeam } })
+            .then(f => {
+                return res.status(200).json(f)
+            })
+            .catch(err => {
+                return res.status(500).json(err)
+            })
     }
     else if (req.query.matchDay) {
-        await Fixtures.find({matchDay: req.query.matchDay})
-            .then(f => {return res.status(200).json(f)})
+        await Fixtures.find({ matchDay: req.query.matchDay })
+            .then(f => { return res.status(200).json(f) })
             .catch(err => {
                 return res.status(500).json(err)
             })
     }
     else if (req.query.homeTeam) {
-        await Fixtures.find({homeTeam: {$regex: req.query.homeTeam}})
-                    .then(f => {
-                        res.status(200).json(f)
-                    })
-                    .catch(err => {
-                        res.status(500).json(err)
-                    })
+        await Fixtures.find({ homeTeam: { $regex: req.query.homeTeam } })
+            .then(f => {
+                res.status(200).json(f)
+            })
+            .catch(err => {
+                res.status(500).json(err)
+            })
     }
     else if (req.query.awayTeam) {
-        await Fixtures.find({awayTeam: {$regex: req.query.awayTeam}})
-                    .then(f => {
-                        return res.status(200).json(f)
-                    })
-                    .catch(err => {
-                        return res.status(500).json(err)
-                    })
+        await Fixtures.find({ awayTeam: { $regex: req.query.awayTeam } })
+            .then(f => {
+                return res.status(200).json(f)
+            })
+            .catch(err => {
+                return res.status(500).json(err)
+            })
     }
     else {
-        return res.status(400).json({message: 'Fixture does not exist'});
+        return res.status(400).json({ message: 'Fixture does not exist' });
     }
 });
 
@@ -129,44 +137,71 @@ router.get('/fixtures/view', async (req, res) => {
 router.get('/fixtures', async (req, res) => {
     //return one Fixture if a query item exists or error message
     await Fixtures.find({})
-            .then(fAll => {
-                res.status(200).json(fAll)
-            })
-            .catch(err => {
-                res.status(500).json(err)
-            });
+        .then(fAll => {
+            res.status(200).json(fAll)
+        })
+        .catch(err => {
+            res.status(500).json(err)
+        });
 });
 
 //Edit Fixture using matchDay
-router.put('/fixtures/update', async (req, res) => {
-    if (!(req.query.matchDay && req.query.homeTeam && req.query.awayTeam)) {
-        return res.status(400).json({message: 'Missing matchDay||homeTeam||awayTeam Parameter'})
-    }
+router.put('/fixtures/update', verifyToken, (req, res) => {
+    //authenticate userr
+    jwt.verify(req.token, process.env.ADMIN_TOKEN_SECRET, async (err, data) => {
+        if (err) {
+            return res.status(403).json({ message: 'Unauthorized' })
+        } else {
+            if (!(req.query.matchDay && req.query.homeTeam && req.query.awayTeam)) {
+                return res.status(400).json({ message: 'Missing matchDay||homeTeam||awayTeam Parameter' })
+            }
 
-    await Fixtures.findOneAndUpdate({matchDay: req.query.matchDay, homeTeam: req.query.homeTeam, awayTeam: req.query.awayTeam}, req.body, {new: true})
-            .then(fixture => {
-                res.status(201).json({fixture, message: 'Fixture Updated Successfully'})
-            })
-            .catch(err => {
-                res.status(500).json(err)
-            });
-    
+            await Fixtures.findOneAndUpdate({ matchDay: req.query.matchDay, homeTeam: req.query.homeTeam, awayTeam: req.query.awayTeam }, req.body, { new: true })
+                .then(fixture => {
+                    res.status(201).json({ fixture, message: 'Fixture Updated Successfully' })
+                })
+                .catch(err => {
+                    res.status(500).json(err)
+                });
+        }
+    })
 });
 
 //delete Fixture using matchDay
-router.delete('/fixtures/delete', async (req, res) => {
-    if (!(req.query.matchDay && req.query.homeTeam && req.query.awayTeam)) {
-        return res.status(400).json({message: 'Missing matchDay||homeTeam||awayTeam Parameter'})
-    }
+router.delete('/fixtures/delete', verifyToken, (req, res) => {
+    //authenticate user
+    jwt.verify(req.token, process.env.ADMIN_TOKEN_SECRET, async (err, data) => {
+        if (err) {
+            return res.status(403).json({ message: 'Unauthorized' })
+        } else {
+            if (!(req.query.matchDay && req.query.homeTeam && req.query.awayTeam)) {
+                return res.status(400).json({ message: 'Missing matchDay||homeTeam||awayTeam Parameter' })
+            }
 
-    await Fixtures.findOneAndRemove({matchDay: req.query.matchDay, homeTeam: req.query.homeTeam, awayTeam: req.query.awayTeam})
-            .then(fixture => {
-                res.status(200).json({fixture, message: 'Deleted Successfully'})
-            })
-            .catch(err => {
-                res.status(500).json(err)
-            });
-    
+            await Fixtures.findOneAndRemove({ matchDay: req.query.matchDay, homeTeam: req.query.homeTeam, awayTeam: req.query.awayTeam })
+                .then(fixture => {
+                    res.status(200).json({ fixture, message: 'Deleted Successfully' })
+                })
+                .catch(err => {
+                    res.status(500).json(err)
+                });
+
+        }
+    })
 });
+
+//verifyToken function middleware
+function verifyToken(req, res, next) {
+    //GET AUTH HEADER VALUE
+    const bearerHeader = req.headers['authorization'];
+    if (typeof bearerHeader !== 'undefined') {
+        const bearerToken = bearerHeader.split(' ');
+        const bearer = bearerToken[1];
+        req.token = bearer;
+        next();
+    } else {
+        res.status(403).json({ message: 'Unauthorized' });
+    }
+}
 
 module.exports = router;
