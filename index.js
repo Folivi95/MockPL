@@ -1,14 +1,10 @@
 const express = require('express');
-const redis = require('redis');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const app = express();
 
 //configure environment variables
 dotenv.config();
-
-//Setup connection to redis client
-const redisClient = redis.createClient(process.env.REDIS_PORT);
 
 //Importing Routes
 const adminRoute = require('./routes/auth/admin');

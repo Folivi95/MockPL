@@ -244,7 +244,7 @@ function verifyToken(req, res, next) {
 }
 
 function cache(req,res,next) {
-    redisClient.get(redisKey, (err, data) => {
+    redisClient.GET(redisKey, (err, data) => {
         if (err) {
             throw err
         }
