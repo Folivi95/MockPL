@@ -134,15 +134,37 @@ router.get('/fixtures/view', async (req, res) => {
 });
 
 //View all Fixtures
-router.get('/fixtures', async (req, res) => {
-    //return one Fixture if a query item exists or error message
-    await Fixtures.find({})
-        .then(fAll => {
-            res.status(200).json(fAll)
-        })
-        .catch(err => {
-            res.status(500).json(err)
-        });
+router.get('/fixtures', verifyToken, (req, res) => {
+    //authenticate normal user
+    jwt.verify(req.token, process.env.USER_TOKEN_SECRET, async (err, data) => {
+        if (err) {
+            //authenticate admin user
+            jwt.verify(req.token, process.env.ADMIN_TOKEN_SECRET, async (err, data) => {
+                if (err) {
+                    res.status(403).json({ message: 'Unauthorised' })
+                } else {
+                    //return one Fixture if a query item exists or error message
+                    await Fixtures.find({})
+                        .then(fAll => {
+                            res.status(200).json(fAll)
+                        })
+                        .catch(err => {
+                            res.status(500).json(err)
+                        });
+                }
+            });
+            //res.status(403).json({ message: 'Unauthorised' })
+        } else {
+            //return one Fixture if a query item exists or error message
+            await Fixtures.find({})
+                .then(fAll => {
+                    res.status(200).json(fAll)
+                })
+                .catch(err => {
+                    res.status(500).json(err)
+                });
+        }
+    });
 });
 
 //Edit Fixture using matchDay

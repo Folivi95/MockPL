@@ -64,15 +64,22 @@ router.get('/teams/view', async (req, res) => {
 });
 
 //View all teams
-router.get('/teams', async (req, res) => {
-    //return one team if a query item exists or error message
-    await Team.find({})
-        .then(tAll => {
-            res.status(200).json(tAll)
-        })
-        .catch(err => {
-            res.status(500).json(err)
-        });
+router.get('/teams', verifyToken, (req, res) => {
+    //authenticate user
+    jwt.verify(req.token, process.env.USER_TOKEN_SECRET, async(err,data) => {
+        if (err) {
+            return res.status(403).json({message: 'Unauthorised'})
+        } else {
+            //return one team if a query item exists or error message
+            await Team.find({})
+            .then(tAll => {
+                res.status(200).json(tAll)
+            })
+            .catch(err => {
+                res.status(500).json(err)
+            });
+        }
+    })
 });
 
 //Edit Team
