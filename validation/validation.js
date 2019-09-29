@@ -34,8 +34,11 @@ const teamValidation = (data) => {
 //fixture validation
 const fixtureValidation = (data) => {
     const schema = Joi.object({
-        name: Joi.string().min(3).required(),
-        position: Joi.number().required()
+        homeTeam: Joi.string().min(3).required(),
+        awayTeam: Joi.string().min(3).required(),
+        homeScore: Joi.string().allow(null),
+        awayScore: Joi.string().allow(null),
+        matchDay: Joi.number().required()
     })
 
     return schema.validate(data);

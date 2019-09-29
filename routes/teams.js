@@ -32,7 +32,7 @@ router.post('/teams/add', async (req,res) => {
     try {
         const savedTeam = await team.save();
         res.status(200).json({
-            team: team.name,
+            team: savedTeam,
             message: 'Created Successfully'
         });
     } catch (error) {
@@ -50,7 +50,6 @@ router.get('/teams/view', async (req, res) => {
             .catch(err => {
                 res.status(500).json(err)
             })
-        return res.status(200).json
     }else {
         return res.status(400).json({message: 'Team does not exist'});
     }

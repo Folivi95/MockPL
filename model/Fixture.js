@@ -13,14 +13,8 @@ const fixtureSchema = new mongoose.Schema({
         min: 3,
         max: 255
     },
-    homeScore: {
-        type: String,
-        required: true,
-    },
-    awayScore: {
-        type: String,
-        required: true,
-    },
+    homeScore: String,
+    awayScore: String,
     matchDay: {
         type: Number,
         required: true
@@ -31,4 +25,4 @@ const fixtureSchema = new mongoose.Schema({
     }
 }, {collection: 'MPLFixtures'});
 
-module.exports = mongoose.model('Fixture', fixtureSchema);
+module.exports = mongoose.model('Fixtures', fixtureSchema);

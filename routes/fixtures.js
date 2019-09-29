@@ -1,38 +1,46 @@
 const router = require('express').Router();
-const Fixture = require('../model/Fixture');
+const Fixtures = require('../model/Fixture');
 const jwt = require('jsonwebtoken');
-const { teamValidation } = require('../validation/validation');
+const { fixtureValidation } = require('../validation/validation');
 
-//Add Teams
-router.post('/teams/add', async (req,res) => {
+//Add Fixtures
+router.post('/fixtures/add', async (req,res) => {
     //validate request
-    const {error} = teamValidation(req.body);
+    const {error} = fixtureValidation(req.body);
     if (error) {
         return res.status(400).json({message: error.details[0].message});
     }
 
-    //check if team is in database
-    const teamExist = await Team.findOne({name: req.body.name});
-    if (teamExist) {
-        return res.status(400).json({message: 'Team Already Exists'});
+    //check if Fixture is in database and status is completed
+    const FixtureExist = await Fixtures.findOne({homeTeam: req.body.homeTeam, awayTeam: req.body.awayTeam, status: 'completed'});
+    if (FixtureExist) {
+        return res.status(400).json({message: 'Fixture Already Exists'});
     }
 
-    //check if position exists
-    const positionExist = await Team.findOne({position: req.body.position});
-    if (positionExist) {
-        return res.status(400).json({message: 'A Team already Exists at that Position. Update the position and try again.'});
+    //delete fixture in database if status is pending
+    await Fixtures.findOneAndRemove({homeTeam: req.body.homeTeam, awayTeam: req.body.awayTeam, status: 'pending'});
+
+    //set status to completed or pending if scores are supplied
+    if ((req.body.homeScore !== null) && (req.body.awayScore !== null)) {
+        var status = 'completed';
+    } else {
+        status = 'pending';
     }
 
-    //add team to database if all checks fails
-    const team = new Team({
-        name: req.body.name,
-        position: req.body.position
+    //add Fixture to database if all checks fails
+    const Fixture = new Fixtures({
+        homeTeam: req.body.homeTeam,
+        awayTeam: req.body.awayTeam,
+        homeScore: req.body.homeScore,
+        awayScore: req.body.awayScore,
+        matchDay: req.body.matchDay,
+        status: status
     });
 
     try {
-        const savedTeam = await team.save();
+        const savedFixture = await Fixture.save();
         res.status(200).json({
-            team: team.name,
+            fixture: savedFixture,
             message: 'Created Successfully'
         });
     } catch (error) {
@@ -41,42 +49,51 @@ router.post('/teams/add', async (req,res) => {
 });
 
 
-//View teams with team name
-router.get('/teams/view', async (req, res) => {
-    //return one team if a query item exists or error message
-    if (req.query.name) {
-        await Team.find({name: {$regex: req.query.name}})
-            .then(t => {res.status(200).json(t)})
+//View Fixtures with matchday or name
+router.get('/fixtures/view', async (req, res) => {
+    //return Fixture using match day
+    if (req.query.matchDay) {
+        await Fixtures.find({matchDay: req.query.matchDay})
+            .then(f => {res.status(200).json(f)})
             .catch(err => {
                 res.status(500).json(err)
             })
-        return res.status(200).json
-    }else {
-        return res.status(400).json({message: 'Team does not exist'});
+    }
+    else if (req.query.name) {
+        await Fixtures.find({$or: [{homeTeam: {$regex: req.query.name}}, {awayTeam: {$regex: req.query.name}}]})
+                    .then(f => {
+                        res.status(200).json(f)
+                    })
+                    .catch(err => {
+                        res.status(500).json(err)
+                    })
+    }
+    else {
+        return res.status(400).json({message: 'Fixture does not exist'});
     }
 });
 
-//View all teams
-router.get('/teams', async (req, res) => {
-    //return one team if a query item exists or error message
-    await Team.find({})
-            .then(tAll => {
-                res.status(200).json(tAll)
+//View all Fixtures
+router.get('/fixtures', async (req, res) => {
+    //return one Fixture if a query item exists or error message
+    await Fixtures.find({})
+            .then(fAll => {
+                res.status(200).json(fAll)
             })
             .catch(err => {
                 res.status(500).json(err)
             });
 });
 
-//Edit Team
-router.put('/teams/update', async (req, res) => {
-    if (!req.query.name) {
-        return res.status(400).json({message: 'Missing Name Parameter or Name not Found'})
+//Edit Fixture using matchDay
+router.put('/fixtures/update', async (req, res) => {
+    if (!req.query.matchDay) {
+        return res.status(400).json({message: 'Missing matchDay Parameter or matchDay not Found'})
     }
 
-    await Team.findOneAndUpdate({name: req.query.name}, req.body, {new: true})
-            .then(t => {
-                res.status(201).json(t)
+    await Fixtures.findOneAndUpdate({matchDay: req.query.matchDay, homeTeam: req.body.homeTeam, awayTeam: req.body.awayTeam}, req.body, {new: true})
+            .then(f => {
+                res.status(201).json(f)
             })
             .catch(err => {
                 res.status(500).json(err)
@@ -84,15 +101,15 @@ router.put('/teams/update', async (req, res) => {
     
 });
 
-//delete Team
-router.delete('/teams/delete', async (req, res) => {
-    if (!req.query.name) {
-        return res.status(400).json({message: 'Missing Name Parameter or Name not Found'})
+//delete Fixture using matchDay
+router.delete('/fixtures/delete', async (req, res) => {
+    if (!req.query.matchDay) {
+        return res.status(400).json({message: 'Missing matchDay Parameter or matchDay not Found'})
     }
 
-    await Team.findOneAndRemove({name: req.query.name})
-            .then(t => {
-                res.status(200).json({t, message: 'Deleted Successfully'})
+    await Fixtures.findOneAndRemove({matchDay: req.query.matchDay, homeTeam: req.body.homeTeam, awayTeam: req.body.awayTeam})
+            .then(f => {
+                res.status(200).json({f, message: 'Deleted Successfully'})
             })
             .catch(err => {
                 res.status(500).json(err)
