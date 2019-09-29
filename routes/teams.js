@@ -1,7 +1,12 @@
 const router = require('express').Router();
 const Team = require('../model/Team');
+const redis = require('redis');
 const jwt = require('jsonwebtoken');
 const { teamValidation } = require('../validation/validation');
+
+//redis setup
+const redisClient = redis.createClient(process.env.REDIS_PORT);
+var redisKey = null;
 
 //Add Teams
 router.post('/teams/add', verifyToken, (req, res) => {
@@ -50,11 +55,14 @@ router.post('/teams/add', verifyToken, (req, res) => {
 
 
 //View teams with team name
-router.get('/teams/view', async (req, res) => {
+router.get('/teams/view', cache, async (req, res) => {
     //return one team if a query item exists or error message
     if (req.query.name) {
         await Team.find({ name: { $regex: req.query.name } })
-            .then(t => { res.status(200).json(t) })
+            .then(t => { 
+                redisClient.SETEX(redisKey, 30, Buffer.from(JSON.stringify(t).toString('base64')));
+                res.status(200).json(t) 
+            })
             .catch(err => {
                 res.status(500).json(err)
             })
@@ -64,7 +72,7 @@ router.get('/teams/view', async (req, res) => {
 });
 
 //View all teams
-router.get('/teams', verifyToken, (req, res) => {
+router.get('/teams', verifyToken, cache, (req, res) => {
     //authenticate user
     jwt.verify(req.token, process.env.USER_TOKEN_SECRET, async(err,data) => {
         if (err) {
@@ -73,6 +81,7 @@ router.get('/teams', verifyToken, (req, res) => {
             //return one team if a query item exists or error message
             await Team.find({})
             .then(tAll => {
+                redisClient.SETEX(redisKey, 30, Buffer.from(JSON.stringify(tAll).toString('base64')));
                 res.status(200).json(tAll)
             })
             .catch(err => {
@@ -139,6 +148,19 @@ function verifyToken(req, res, next) {
     } else {
         res.status(403).json({ message: 'Unauthorized' });
     }
+}
+
+function cache(req,res,next) {
+    redisClient.get(redisKey, (err, data) => {
+        if (err) {
+            throw err
+        }
+        if (data !== null) {
+            res.status(200).send(data);
+        } else {
+           next(); 
+        }
+    })
 }
 
 module.exports = router;

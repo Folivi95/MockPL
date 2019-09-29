@@ -2,7 +2,12 @@ const router = require('express').Router();
 const Fixtures = require('../model/Fixture');
 const Team = require('../model/Team');
 const jwt = require('jsonwebtoken');
+const redis = require('redis');
 const { fixtureValidation } = require('../validation/validation');
+
+//redis setup
+const redisClient = redis.createClient(process.env.REDIS_PORT);
+var redisKey = null;
 
 //Add Fixtures
 router.post('/fixtures/add', verifyToken, (req, res) => {
@@ -80,7 +85,10 @@ router.get('/fixtures/view', async (req, res) => {
     //return Fixture using match day
     if (req.query.matchDay && req.query.homeTeam && req.query.awayTeam) {
         await Fixtures.find({ matchDay: req.query.matchDay, homeTeam: { $regex: req.query.homeTeam }, awayTeam: { $regex: req.query.awayTeam } })
-            .then(f => { return res.status(200).json(f) })
+            .then(f => { 
+                redisClient.SETEX(redisKey, 30, Buffer.from(JSON.stringify(f).toString('base64')));
+                return res.status(200).json(f) 
+            })
             .catch(err => {
                 return res.status(500).json(err)
             })
@@ -88,6 +96,7 @@ router.get('/fixtures/view', async (req, res) => {
     else if (req.query.homeTeam && req.query.matchDay) {
         await Fixtures.find({ matchDay: req.query.matchDay, homeTeam: { $regex: req.query.homeTeam } })
             .then(f => {
+                redisClient.SETEX(redisKey, 30, Buffer.from(JSON.stringify(f).toString('base64')));
                 return res.status(200).json(f)
             })
             .catch(err => {
@@ -97,6 +106,7 @@ router.get('/fixtures/view', async (req, res) => {
     else if (req.query.awayTeam && req.query.matchDay) {
         await Fixtures.find({ matchDay: req.query.matchDay, awayTeam: { $regex: req.query.awayTeam } })
             .then(f => {
+                redisClient.SETEX(redisKey, 30, Buffer.from(JSON.stringify(f).toString('base64')));
                 return res.status(200).json(f)
             })
             .catch(err => {
@@ -105,7 +115,10 @@ router.get('/fixtures/view', async (req, res) => {
     }
     else if (req.query.matchDay) {
         await Fixtures.find({ matchDay: req.query.matchDay })
-            .then(f => { return res.status(200).json(f) })
+            .then(f => { 
+                redisClient.SETEX(redisKey, 30, Buffer.from(JSON.stringify(f).toString('base64')));
+                return res.status(200).json(f) 
+            })
             .catch(err => {
                 return res.status(500).json(err)
             })
@@ -113,7 +126,8 @@ router.get('/fixtures/view', async (req, res) => {
     else if (req.query.homeTeam) {
         await Fixtures.find({ homeTeam: { $regex: req.query.homeTeam } })
             .then(f => {
-                res.status(200).json(f)
+                redisClient.SETEX(redisKey, 30, Buffer.from(JSON.stringify(f).toString('base64')));
+                return res.status(200).json(f)
             })
             .catch(err => {
                 res.status(500).json(err)
@@ -122,6 +136,7 @@ router.get('/fixtures/view', async (req, res) => {
     else if (req.query.awayTeam) {
         await Fixtures.find({ awayTeam: { $regex: req.query.awayTeam } })
             .then(f => {
+                redisClient.SETEX(redisKey, 30, Buffer.from(JSON.stringify(f).toString('base64')));
                 return res.status(200).json(f)
             })
             .catch(err => {
@@ -146,6 +161,7 @@ router.get('/fixtures', verifyToken, (req, res) => {
                     //return one Fixture if a query item exists or error message
                     await Fixtures.find({})
                         .then(fAll => {
+                            redisClient.SETEX(redisKey, 30, Buffer.from(JSON.stringify(fAll).toString('base64')));
                             res.status(200).json(fAll)
                         })
                         .catch(err => {
@@ -158,6 +174,7 @@ router.get('/fixtures', verifyToken, (req, res) => {
             //return one Fixture if a query item exists or error message
             await Fixtures.find({})
                 .then(fAll => {
+                    redisClient.SETEX(redisKey, 30, Buffer.from(JSON.stringify(fAll).toString('base64')));
                     res.status(200).json(fAll)
                 })
                 .catch(err => {
@@ -224,6 +241,19 @@ function verifyToken(req, res, next) {
     } else {
         res.status(403).json({ message: 'Unauthorized' });
     }
+}
+
+function cache(req,res,next) {
+    redisClient.get(redisKey, (err, data) => {
+        if (err) {
+            throw err
+        }
+        if (data !== null) {
+            res.status(200).send(data);
+        } else {
+           next(); 
+        }
+    })
 }
 
 module.exports = router;

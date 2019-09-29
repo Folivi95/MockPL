@@ -7,6 +7,9 @@ const app = express();
 //configure environment variables
 dotenv.config();
 
+//Setup connection to redis client
+const redisClient = redis.createClient(process.env.REDIS_PORT);
+
 //Importing Routes
 const adminRoute = require('./routes/auth/admin');
 const userRoute = require('./routes/auth/user');
