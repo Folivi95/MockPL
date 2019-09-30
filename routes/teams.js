@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const { teamValidation } = require('../validation/validation');
 
 //redis setup
-const redisClient = redis.createClient(process.env.REDIS_PORT);
+const redisClient = redis.createClient(process.env.REDIS_PORT_HEROKU);
 var redisKey = null;
 
 //Add Teams

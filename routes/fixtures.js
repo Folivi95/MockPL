@@ -6,7 +6,7 @@ const redis = require('redis');
 const { fixtureValidation } = require('../validation/validation');
 
 //redis setup
-const redisClient = redis.createClient(process.env.REDIS_PORT);
+const redisClient = redis.createClient(process.env.REDIS_PORT_HEROKU);
 var redisKey = null;
 
 //Add Fixtures
@@ -81,7 +81,7 @@ router.post('/fixtures/add', verifyToken, (req, res) => {
 
 
 //Robust View Fixtures search with matchday or home team or away team
-router.get('/fixtures/view', cache, async (req, res) => {
+router.get('/fixtures/view', async (req, res) => {
     //return Fixture using match day
     if (req.query.matchDay && req.query.homeTeam && req.query.awayTeam) {
         await Fixtures.find({ matchDay: req.query.matchDay, homeTeam: { $regex: req.query.homeTeam }, awayTeam: { $regex: req.query.awayTeam } })
@@ -149,7 +149,7 @@ router.get('/fixtures/view', cache, async (req, res) => {
 });
 
 //View all Fixtures
-router.get('/fixtures', verifyToken, cache, (req, res) => {
+router.get('/fixtures', verifyToken, (req, res) => {
     //authenticate normal user
     jwt.verify(req.token, process.env.USER_TOKEN_SECRET, async (err, data) => {
         if (err) {
