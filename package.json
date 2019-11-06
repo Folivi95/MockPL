@@ -20,7 +20,7 @@
     "express": "^4.17.1",
     "jest": "^24.9.0",
     "jsonwebtoken": "^8.5.1",
-    "mongoose": "^5.7.1",
+    "mongoose": "^5.7.5",
     "redis": "^2.8.0",
     "supertest": "^4.0.2"
   }
