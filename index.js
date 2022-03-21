@@ -10,7 +10,7 @@ dotenv.config();
 const adminRoute = require('./routes/auth/admin');
 const userRoute = require('./routes/auth/user');
 const teamRoute = require('./routes/teams');
-const fixtureRoute = require('./routes/fixtures');
+// const fixtureRoute = require('./routes/fixtures');
 
 //Middleware
 app.use(express.json());
